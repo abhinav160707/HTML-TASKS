@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WellTrack — Stylish Single-file App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Theme variables: clearly separated for reliability */
+    :root{
+      --bg: #0f1724; --panel:#0b1220; --muted:#9aa4b2; --card:#0b1224; --text:#e6eef8; --glass: rgba(255,255,255,0.04);
+      --accent-1: #7c5cff; --accent-2: #06b6d4; --accent-gradient: linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    }
+    html[data-theme='light']{ --bg: #f6f8fb; --panel:#ffffff; --muted:#6b7280; --card:#ffffff; --text:#0b1224; --glass: rgba(0,0,0,0.03); }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial; background:radial-gradient(1200px 600px at 10% 10%, rgba(124,92,255,0.06), transparent), radial-gradient(800px 500px at 90% 90%, rgba(6,182,212,0.03), transparent), var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+
+    .app{max-width:1100px;margin:28px auto;padding:22px}
+    header{display:flex;align-items:center;gap:12px;justify-content:space-between}
+    h1{font-size:22px;margin:0;letter-spacing:-0.2px}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    .top-controls{display:flex;gap:8px;align-items:center}
+    .glass{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.04);backdrop-filter: blur(6px);border-radius:12px;padding:12px}
+    html[data-theme='light'] .glass{ background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01)); border:1px solid rgba(0,0,0,0.04); }
+
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:20px}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}.top-right{order:2}}
+
+    /* form */
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    input[type=text], textarea{flex:1;padding:12px;border-radius:10px;border:0;background:transparent;color:var(--text);outline:none}
+    input[type=color]{width:48px;height:48px;border-radius:10px;border:0;padding:0}
+    .btn{border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn-primary{background:var(--accent-gradient);box-shadow:0 6px 20px rgba(124,92,255,0.14);color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+    html[data-theme='light'] .btn-ghost{border:1px solid rgba(0,0,0,0.06)}
+
+    /* habit list */
+    .habit{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;margin-bottom:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.03);transition:transform 180ms ease, box-shadow 180ms ease}
+    html[data-theme='light'] .habit{ background:linear-gradient(180deg, rgba(0,0,0,0.01), rgba(0,0,0,0.00)); border:1px solid rgba(0,0,0,0.04); }
+    .habit:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(2,6,23,0.45)}
+    .marker{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .meta{flex:1}
+    .title{font-weight:700}
+    .notes{color:var(--muted);font-size:13px;margin-top:4px}
+    .controls{display:flex;gap:8px;align-items:center}
+    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+    html[data-theme='light'] .pill{ background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.04); }
+
+    /* right column */
+    aside .card{padding:14px}
+
+    /* chart */
+    .chart-wrap{height:160px;width:100%;border-radius:10px;overflow:hidden;margin-top:8px}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* small screens */
+    @media(max-width:480px){h1{font-size:18px}}
+
+    /* subtle animation */
+    .fade-in{animation:fadeIn 420ms ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    /* empty state */
+    .empty{padding:18px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));text-align:center;color:var(--muted)}
+    html[data-theme='light'] .empty{ background:linear-gradient(180deg, rgba(0,0,0,0.01), rgba(0,0,0,0.00)); }
+
+    /* small helper for chart label color (adapts to theme) */
+    .chart-label-color{ color: var(--text); opacity: 0.85 }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1 style="font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));-webkit-background-clip:text;color:transparent;letter-spacing:-1px;">WellTrack</h1>
+        <div class="subtitle">Stylish habit tracker — focused, local, and beautifully simple</div>
+      </div>
+      <div class="top-controls">
+        <button id="themeToggle" class="btn btn-ghost">Toggle Theme</button>
+        <button id="clearAll" class="btn btn-ghost">Clear all</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <section class="glass fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong style="font-size:15px">Create a habit</strong>
+              <div class="subtitle" style="margin-top:4px">Small habits &gt; big results. Keep it tiny and consistent.</div>
+            </div>
+            <div style="text-align:right;color:var(--muted);font-size:13px">Local storage • No accounts</div>
+          </div>
+
+          <div id="addForm" style="margin-top:14px">
+            <div class="form-row">
+              <input id="title" type="text" placeholder="e.g., Read 20 minutes" />
+              <input id="color" type="color" value="#7c5cff" />
+            </div>
+            <div style="margin-bottom:12px">
+              <textarea id="notes" placeholder="Optional note — why this matters" rows="2"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button id="addBtn" class="btn btn-primary">Add habit</button>
+              <button id="updateBtn" style="display:none" class="btn btn-ghost">Save</button>
+              <button id="cancelEdit" style="display:none" class="btn btn-ghost">Cancel</button>
+              <div style="flex:1"></div>
+              <div class="subtitle">Press Enter to add</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass fade-in" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>Habits</strong>
+            <div class="muted">Manage your habits</div>
+          </div>
+
+          <div id="habitList" style="margin-top:12px"></div>
+          <div id="empty" class="empty" style="margin-top:12px">No habits yet — add one to begin tracking.</div>
+        </section>
+
+        <section class="glass fade-in" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>Weekly progress</strong>
+            <div class="muted">Last 7 days</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart" width="600" height="160"></canvas></div>
+        </section>
+      </main>
+
+      <aside class="top-right">
+        <div class="glass card fade-in">
+          <h3 style="margin:0">Summary</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+            <div style="display:flex;justify-content:space-between"><div class="muted">Total habits</div><div id="totalHabits">0</div></div>
+            <div style="display:flex;justify-content:space-between"><div class="muted">Completed today</div><div id="completedToday">0</div></div>
+            <div style="display:flex;justify-content:space-between"><div class="muted">Active days (7d)</div><div id="streak">0</div></div>
+          </div>
+        </div>
+
+        <div class="glass card fade-in" style="margin-top:14px">
+          <h3 style="margin:0">Motivation</h3>
+          <div style="margin-top:10px;color:var(--muted);font-size:14px">"Small steps consistently taken become the foundation of big change."</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="pill" id="quickAdd1">Read</button>
+            <button class="pill" id="quickAdd2">Workout</button>
+            <button class="pill" id="quickAdd3">Meditate</button>
+          </div>
+        </div>
+
+        <div class="glass card fade-in" style="margin-top:14px">
+          <div style="font-size:13px;color:var(--muted)">Tips</div>
+          <ul style="margin:8px 0 0 18px;color:var(--muted)">
+            <li>Keep habit duration small (5–20 minutes).</li>
+            <li>Mark completion immediately after doing it.</li>
+            <li>Review weekly to keep momentum.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="muted">Made with focus. Data saved in your browser.</footer>
+  </div>
+
+  <script>
+    /* Improved, bug-free theme handling
+       - Theme stored in localStorage as 'welltrack-theme' (values: 'dark' | 'light')
+       - Toggle updates data-theme attribute on <html>
+       - CSS uses html[data-theme='light'] to override variables — reliable and fast
+       - Chart adapts to theme by reading CSS variables at draw time
+    */
+
+    const LS_KEY = 'welltrack-habits-v1-stylish';
+    const THEME_KEY = 'welltrack-theme';
+    const qs = s => document.querySelector(s);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    // load theme preference
+    function loadTheme(){ const t = localStorage.getItem(THEME_KEY) || 'dark'; document.documentElement.setAttribute('data-theme', t); }
+    function saveTheme(t){ localStorage.setItem(THEME_KEY, t); document.documentElement.setAttribute('data-theme', t); }
+    function toggleTheme(){ const cur = document.documentElement.getAttribute('data-theme') || 'dark'; const next = cur === 'dark' ? 'light' : 'dark'; saveTheme(next); // redraw with new colors
+      scaleCanvas(); }
+
+    let habits = load(); let editId = null;
+
+    const titleInput = qs('#title'); const notesInput = qs('#notes'); const colorInput = qs('#color');
+    const addBtn = qs('#addBtn'); const updateBtn = qs('#updateBtn'); const cancelEdit = qs('#cancelEdit');
+    const habitList = qs('#habitList'); const empty = qs('#empty'); const chartCanvas = qs('#chart');
+    const totalHabitsEl = qs('#totalHabits'); const completedTodayEl = qs('#completedToday'); const streakEl = qs('#streak');
+    const themeToggle = qs('#themeToggle'); const clearAllBtn = qs('#clearAll');
+    const quickAdd1 = qs('#quickAdd1'); const quickAdd2 = qs('#quickAdd2'); const quickAdd3 = qs('#quickAdd3');
+
+    function load(){ try{ const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : []; }catch(e){return []} }
+    function save(){ localStorage.setItem(LS_KEY, JSON.stringify(habits)); }
+    function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+    function render(){ habitList.innerHTML=''; if(habits.length===0){ empty.style.display='block' } else { empty.style.display='none' }
+      habits.forEach(h=>{ const div=document.createElement('div'); div.className='habit';
+        const marker=document.createElement('div'); marker.className='marker'; marker.style.background = 'linear-gradient(180deg,'+h.color+', rgba(0,0,0,0.06))';
+        marker.textContent = h.title.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+        const meta=document.createElement('div'); meta.className='meta'; const t=document.createElement('div'); t.className='title'; t.textContent=h.title; const n=document.createElement('div'); n.className='notes'; n.textContent=h.notes || '';
+        meta.appendChild(t); meta.appendChild(n);
+        const controls=document.createElement('div'); controls.className='controls';
+        const doneBtn=document.createElement('button'); doneBtn.className='pill'; doneBtn.textContent = isDoneToday(h) ? 'Done' : 'Mark'; doneBtn.onclick = ()=>toggleDoneToday(h.id);
+        const editBtn=document.createElement('button'); editBtn.className='btn-ghost pill'; editBtn.textContent='Edit'; editBtn.onclick = ()=>startEdit(h.id);
+        const delBtn=document.createElement('button'); delBtn.className='btn-ghost pill'; delBtn.textContent='Delete'; delBtn.onclick = ()=>{ if(confirm('Delete this habit?')) deleteHabit(h.id)};
+        controls.appendChild(doneBtn); controls.appendChild(editBtn); controls.appendChild(delBtn);
+        div.appendChild(marker); div.appendChild(meta); div.appendChild(controls); habitList.appendChild(div);
+      }); updateSummary(); drawChart(); }
+
+    function isDoneToday(h){ return h.completedDates && h.completedDates.includes(todayISO()); }
+
+    function addHabit(titleOverride){ const title = (titleOverride || titleInput.value).trim(); if(!title){ alert('Give your habit a short name'); return }
+      const habit = { id: uid(), title, notes: notesInput.value.trim(), color: colorInput.value, completedDates: [] };
+      habits.unshift(habit); save(); clearForm(); render(); }
+
+    function startEdit(id){ const h=habits.find(x=>x.id===id); if(!h) return; editId=id; titleInput.value=h.title; notesInput.value=h.notes||''; colorInput.value=h.color||'#7c5cff'; addBtn.style.display='none'; updateBtn.style.display='inline-block'; cancelEdit.style.display='inline-block'; }
+    function cancelEditing(){ editId=null; clearForm(); }
+    function saveEdit(){ if(!editId) return; const h=habits.find(x=>x.id===editId); if(!h) return; h.title = titleInput.value.trim() || h.title; h.notes = notesInput.value.trim(); h.color = colorInput.value; save(); editId=null; clearForm(); render(); }
+    function clearForm(){ titleInput.value=''; notesInput.value=''; colorInput.value='#7c5cff'; addBtn.style.display='inline-block'; updateBtn.style.display='none'; cancelEdit.style.display='none'; }
+    function deleteHabit(id){ habits = habits.filter(h=>h.id!==id); save(); render(); }
+    function toggleDoneToday(id){ const h=habits.find(x=>x.id===id); if(!h) return; h.completedDates = h.completedDates||[]; const idx = h.completedDates.indexOf(todayISO()); if(idx>=0) h.completedDates.splice(idx,1); else h.completedDates.push(todayISO()); save(); render(); }
+    function updateSummary(){ totalHabitsEl.textContent = habits.length; const completedToday = habits.filter(isDoneToday).length; completedTodayEl.textContent = completedToday; const counts = last7().map(d => habits.reduce((acc,h)=> acc + (h.completedDates && h.completedDates.includes(d) ? 1:0), 0)); const streak = counts.filter(c=>c>0).length; streakEl.textContent = streak; }
+
+    function deleteAll(){ if(confirm('Remove all habits and progress?')){ habits=[]; save(); render(); }}
+
+    function last7(){ const arr=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); arr.push(d.toISOString().slice(0,10)); } return arr; }
+
+    function drawChart(){
+      const days = last7(); const counts = days.map(d => habits.reduce((a,h) => a + ((h.completedDates||[]).includes(d) ? 1:0), 0));
+      const canvas = chartCanvas; const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+      const w = canvas.width; const h = canvas.height; const pad = 28; const slot = (w - pad*2) / days.length; const barW = slot * 0.5; const gap = slot - barW; const max = Math.max(1, ...counts);
+
+      // read theme-driven colors from CSS variables so the chart matches theme
+      const styles = getComputedStyle(document.documentElement);
+      const accent1 = styles.getPropertyValue('--accent-1').trim() || '#7c5cff';
+      const accent2 = styles.getPropertyValue('--accent-2').trim() || '#06b6d4';
+      const labelColor = styles.getPropertyValue('--text').trim() || '#e6eef8';
+
+      // draw subtle grid
+      ctx.globalAlpha = 0.06; ctx.fillStyle = labelColor; for(let i=0;i<3;i++){ const y = pad + i * ((h - pad*2)/2); ctx.fillRect(pad, y, w - pad*2, 1); } ctx.globalAlpha = 1;
+
+      days.forEach((d,i)=>{
+        const x = pad + i*slot + gap/2; const barH = (counts[i]/max) * (h - pad*2); const y = h - pad - barH;
+        const grad = ctx.createLinearGradient(x, y, x + barW, y + barH);
+        grad.addColorStop(0, accent1); grad.addColorStop(1, accent2);
+        ctx.fillStyle = grad; roundRect(ctx, x, y, barW, barH, 8, true, false);
+
+        ctx.fillStyle = labelColor; ctx.font = (12 * devicePixelRatio) + 'px Inter, system-ui'; // scaled font
+        const label = new Date(d).toLocaleDateString(undefined,{weekday:'short'}).slice(0,3);
+        // adjust text position for retina scaling
+        ctx.fillText(label, (x), (h - pad + 18));
+        ctx.fillText(counts[i], (x), (y - 8));
+      });
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke){ if (typeof stroke == 'undefined') stroke = true; if (typeof r === 'undefined') r = 5; ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); if(fill) ctx.fill(); if(stroke) ctx.stroke(); }
+
+    function scaleCanvas(){ // keep canvas crisp and theme-aware
+      chartCanvas.width = Math.max(300, chartCanvas.clientWidth) * devicePixelRatio;
+      chartCanvas.height = Math.max(120, chartCanvas.clientHeight) * devicePixelRatio;
+      chartCanvas.style.width = chartCanvas.clientWidth + 'px';
+      chartCanvas.style.height = chartCanvas.clientHeight + 'px';
+      drawChart(); }
+
+    // attach events
+    qs('#themeToggle').addEventListener('click', toggleTheme);
+    qs('#clearAll').addEventListener('click', deleteAll);
+    addBtn.addEventListener('click', ()=>addHabit()); updateBtn.addEventListener('click', saveEdit); cancelEdit.addEventListener('click', cancelEditing);
+    qs('#quickAdd1').addEventListener('click', ()=>addHabit('Read 20 minutes'));
+    qs('#quickAdd2').addEventListener('click', ()=>addHabit('Workout 15 minutes'));
+    qs('#quickAdd3').addEventListener('click', ()=>addHabit('Meditate 10 minutes'));
+    titleInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') addHabit(); });
+    window.addEventListener('resize', scaleCanvas);
+
+    // init
+    loadTheme(); render(); scaleCanvas();
+
+    // expose for debugging
+    window.WellTrack = {habits, save, load, render, toggleTheme};
+  </script>
+</body>
+</html>

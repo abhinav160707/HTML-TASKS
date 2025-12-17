@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DocuCraft — Resume & Portfolio Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f6f8fb;--card:#fff;--muted:#6b7280;--accent:#0f62fe;--accent2:#7c5cff;--shadow:0 8px 30px rgba(16,24,40,0.08);}    
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#0b1224}
+    .app{max-width:1200px;margin:28px auto;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-family:Montserrat,Inter;margin:0;font-size:22px;letter-spacing:-0.5px}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+    @media(max-width:980px){.layout{grid-template-columns:1fr;}}
+
+    .panel{background:var(--card);padding:14px;border-radius:12px;box-shadow:var(--shadow)}
+    .panel h3{margin:0 0 8px 0}
+    .field{margin-bottom:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;background:transparent}
+    textarea{min-height:60px}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .btn-primary{background:var(--accent);color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(11,18,36,0.06)}
+    .small{padding:6px 8px;font-size:13px}
+
+    /* presets (templates) */
+    .templates{display:flex;gap:8px;flex-wrap:wrap}
+    .tpl{border-radius:8px;padding:8px;border:1px solid rgba(11,18,36,0.06);cursor:pointer}
+    .tpl.active{box-shadow:0 6px 20px rgba(12,74,255,0.12);border-color:var(--accent)}
+
+    /* saved list */
+    .saved-list{max-height:220px;overflow:auto;margin-top:8px}
+    .saved-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid rgba(11,18,36,0.03);margin-bottom:8px}
+
+    /* preview */
+    .preview-wrap{display:flex;gap:12px;flex-direction:column}
+    .preview{background:white;padding:18px;border-radius:10px;box-shadow:0 14px 40px rgba(16,24,40,0.08);min-height:640px}
+    .cv-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .name{font-family:Montserrat;font-weight:700;font-size:20px}
+    .position{color:var(--muted);font-size:13px}
+    .section{margin-top:12px}
+    .section h4{margin:0 0 8px 0;font-size:14px}
+    .skills .skill{display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(11,18,36,0.04);margin:4px 6px 0 0}
+
+    /* template variations */
+    .tpl-modern .preview{border-top:8px solid var(--accent)}
+    .tpl-creative .preview{border-left:8px solid var(--accent2)}
+    .tpl-minimal .preview{border-radius:6px;border:1px solid rgba(11,18,36,0.04)}
+
+    footer{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>DocuCraft</h1>
+        <div class="subtitle">Create polished resumes & portfolios — quick templates, live preview, PDF export</div>
+      </div>
+      <div class="row">
+        <button id="newBtn" class="btn btn-ghost small">New</button>
+        <button id="saveBtn" class="btn btn-primary small">Save</button>
+        <button id="downloadBtn" class="btn btn-primary small">Download PDF</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <div class="panel">
+          <h3>Template</h3>
+          <div class="templates" id="templates">
+            <div class="tpl tpl-modern active" data-tpl="modern">Modern</div>
+            <div class="tpl tpl-creative" data-tpl="creative">Creative</div>
+            <div class="tpl tpl-minimal" data-tpl="minimal">Minimal</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Basics</h3>
+          <div class="field"><label>Name</label><input id="name" type="text" placeholder="Your name"></div>
+          <div class="field"><label>Title / Position</label><input id="titleInp" type="text" placeholder="e.g., Software Engineer"></div>
+          <div class="field"><label>Summary</label><textarea id="summary" placeholder="Short professional summary"></textarea></div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Skills</h3>
+          <div class="field"><label>Comma-separated skills</label><input id="skills" type="text" placeholder="e.g., JavaScript, React, SQL"></div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Experience</h3>
+          <div id="expList"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="addExp" class="btn btn-ghost small">Add Experience</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Projects</h3>
+          <div id="projList"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="addProj" class="btn btn-ghost small">Add Project</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Saved Documents</h3>
+          <div class="saved-list" id="savedList"></div>
+        </div>
+      </aside>
+
+      <main class="preview-wrap">
+        <div id="previewContainer" class="preview tpl-modern">
+          <div class="preview" id="preview">
+            <div class="cv-header">
+              <div>
+                <div class="name" id="p_name">Your Name</div>
+                <div class="position" id="p_title">Position • Location</div>
+                <div style="margin-top:8px" id="p_summary">Professional summary goes here. Keep it concise and highlight your strengths.</div>
+              </div>
+              <div style="text-align:right;color:var(--muted)">DocuCraft</div>
+            </div>
+
+            <div class="section skills">
+              <h4>Skills</h4>
+              <div id="p_skills"></div>
+            </div>
+
+            <div class="section experience">
+              <h4>Experience</h4>
+              <div id="p_experience"></div>
+            </div>
+
+            <div class="section projects">
+              <h4>Projects</h4>
+              <div id="p_projects"></div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer>Responsive • Templates • Local-only by default • No account required</footer>
+  </div>
+
+  <!-- Dependencies: html2pdf (bundled) for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    // Simple single-file DocuCraft
+    const LS_KEY = 'docucraft-v1';
+    const qs = s => document.querySelector(s);
+
+    // Form fields
+    const nameEl = qs('#name'); const titleEl = qs('#titleInp'); const summaryEl = qs('#summary'); const skillsEl = qs('#skills');
+    const expListEl = qs('#expList'); const projListEl = qs('#projList');
+
+    // Preview nodes
+    const p_name = qs('#p_name'); const p_title = qs('#p_title'); const p_summary = qs('#p_summary');
+    const p_skills = qs('#p_skills'); const p_experience = qs('#p_experience'); const p_projects = qs('#p_projects');
+    const previewContainer = qs('#previewContainer');
+
+    // template buttons
+    const tplButtons = Array.from(document.querySelectorAll('.tpl'));
+
+    // saved list element
+    const savedListEl = qs('#savedList');
+
+    // data model for dynamic lists - initialize BEFORE any function that uses them
+    let experiences = [];
+    let projects = [];
+    let currentDoc = null;
+
+    function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+    // --- Dynamic inputs rendering and handlers ---
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function renderExpInputs(){ expListEl.innerHTML = ''; experiences.forEach((e,i)=>{
+      const div = document.createElement('div'); div.style.border = '1px solid rgba(11,18,36,0.04)'; div.style.padding='8px'; div.style.borderRadius='8px'; div.style.marginBottom='8px';
+      div.innerHTML = `
+        <div style="display:flex;gap:8px">
+          <input data-idx="${i}" class="exp-role" type="text" placeholder="Role / Title" value="${escapeHtml(e.role)}" style="flex:1;padding:8px;border-radius:6px;border:1px solid #e6e9ef">
+        </div>
+        <div style="margin-top:8px">
+          <input data-idx="${i}" class="exp-company" type="text" placeholder="Company — Date range" value="${escapeHtml(e.company)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef">
+        </div>
+        <div style="margin-top:8px">
+          <textarea data-idx="${i}" class="exp-desc" placeholder="Description" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef">${escapeHtml(e.desc)}</textarea>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button data-idx="${i}" class="btn btn-ghost small exp-update">Update</button>
+          <button data-idx="${i}" class="btn btn-ghost small exp-del">Delete</button>
+        </div>`;
+      expListEl.appendChild(div);
+    }); attachExpHandlers(); }
+
+    function renderProjInputs(){ projListEl.innerHTML=''; projects.forEach((p,i)=>{
+      const div=document.createElement('div'); div.style.border='1px solid rgba(11,18,36,0.04)'; div.style.padding='8px'; div.style.borderRadius='8px'; div.style.marginBottom='8px';
+      div.innerHTML = `
+        <input data-idx="${i}" class="proj-name" type="text" placeholder="Project name" value="${escapeHtml(p.name)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef">
+        <div style="margin-top:8px">
+          <textarea data-idx="${i}" class="proj-desc" placeholder="Short description" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef">${escapeHtml(p.desc)}</textarea>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button data-idx="${i}" class="btn btn-ghost small proj-update">Update</button>
+          <button data-idx="${i}" class="btn btn-ghost small proj-del">Delete</button>
+        </div>`;
+      projListEl.appendChild(div);
+    }); attachProjHandlers(); }
+
+    function attachExpHandlers(){ Array.from(document.querySelectorAll('.exp-update')).forEach(btn=>btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.idx);
+      const role = document.querySelector('.exp-role[data-idx="'+i+'"]').value;
+      const company = document.querySelector('.exp-company[data-idx="'+i+'"]').value;
+      const desc = document.querySelector('.exp-desc[data-idx="'+i+'"]').value;
+      experiences[i] = { role, company, desc };
+      saveModelToPreview(); renderExpInputs();
+    }));
+    Array.from(document.querySelectorAll('.exp-del')).forEach(btn=>btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.idx);
+      experiences.splice(i,1); renderExpInputs(); saveModelToPreview();
+    })); }
+
+    function attachProjHandlers(){ Array.from(document.querySelectorAll('.proj-update')).forEach(btn=>btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.idx);
+      const name = document.querySelector('.proj-name[data-idx="'+i+'"]').value;
+      const desc = document.querySelector('.proj-desc[data-idx="'+i+'"]').value;
+      projects[i] = { name, desc };
+      saveModelToPreview(); renderProjInputs();
+    }));
+    Array.from(document.querySelectorAll('.proj-del')).forEach(btn=>btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.idx);
+      projects.splice(i,1); renderProjInputs(); saveModelToPreview();
+    })); }
+
+    // add experience/project
+    qs('#addExp').addEventListener('click', ()=>{ experiences.push({role:'New Role',company:'Company — Date',desc:'Short description'}); renderExpInputs(); saveModelToPreview(); });
+    qs('#addProj').addEventListener('click', ()=>{ projects.push({name:'New Project',desc:'Short description'}); renderProjInputs(); saveModelToPreview(); });
+
+    // template buttons behavior
+    tplButtons.forEach(b => b.addEventListener('click', ()=>{
+      tplButtons.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const t = b.dataset.tpl || 'modern';
+      previewContainer.classList.remove('tpl-modern','tpl-creative','tpl-minimal');
+      previewContainer.classList.add('tpl-' + t);
+      saveModelToPreview();
+    }));
+
+    // live preview updates
+    [nameEl,titleEl,summaryEl,skillsEl].forEach(el=>el.addEventListener('input', saveModelToPreview));
+
+    function saveModelToPreview(){
+      p_name.textContent = nameEl.value || 'Your Name';
+      p_title.textContent = titleEl.value || 'Position • Location';
+      p_summary.textContent = summaryEl.value || 'Professional summary goes here. Keep it concise.';
+
+      // skills
+      p_skills.innerHTML = '';
+      (skillsEl.value || '').split(',').map(s=>s.trim()).filter(Boolean).forEach(s=>{ const span = document.createElement('span'); span.className='skill'; span.textContent=s; p_skills.appendChild(span); });
+
+      // experience
+      p_experience.innerHTML=''; experiences.forEach(e=>{ const wrap=document.createElement('div'); wrap.style.marginBottom='8px'; wrap.innerHTML = `<div style="font-weight:700">${escapeHtml(e.role)}</div><div style="color:var(--muted);font-size:13px">${escapeHtml(e.company)}</div><div style="margin-top:4px">${escapeHtml(e.desc)}</div>`; p_experience.appendChild(wrap); });
+
+      // projects
+      p_projects.innerHTML=''; projects.forEach(pr=>{ const wrap=document.createElement('div'); wrap.style.marginBottom='8px'; wrap.innerHTML = `<div style="font-weight:700">${escapeHtml(pr.name)}</div><div style="margin-top:4px">${escapeHtml(pr.desc)}</div>`; p_projects.appendChild(wrap); });
+    }
+
+    // Save / Load docs
+    function getSaved(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }catch(e){return []} }
+    function persistSave(doc){ const all = getSaved(); if(!doc.id) doc.id = uid(); // new
+      const idx = all.findIndex(x=>x.id===doc.id); if(idx>=0) all[idx]=doc; else all.unshift(doc); localStorage.setItem(LS_KEY, JSON.stringify(all)); loadSavedList(); currentDoc = doc.id; }
+
+    function loadSavedList(){ const all = getSaved(); savedListEl.innerHTML=''; all.forEach(d=>{ const div=document.createElement('div'); div.className='saved-item'; div.innerHTML = `<div><strong>${escapeHtml(d.name||'Untitled')}</strong><div class="muted" style="font-size:12px">${escapeHtml(d.title||'')}</div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost small load" data-id="${d.id}">Load</button><button class="btn btn-ghost small del" data-id="${d.id}">Delete</button></div>`; savedListEl.appendChild(div); });
+      Array.from(document.querySelectorAll('.load')).forEach(b=>b.addEventListener('click', ()=>{ const id=b.dataset.id; loadDoc(id); }));
+      Array.from(document.querySelectorAll('.del')).forEach(b=>b.addEventListener('click', ()=>{ const id=b.dataset.id; if(confirm('Delete document?')){ const all = getSaved().filter(x=>x.id!==id); localStorage.setItem(LS_KEY, JSON.stringify(all)); loadSavedList(); }})); }
+
+    function saveCurrent(){ const activeTpl = document.querySelector('.tpl.active') ? document.querySelector('.tpl.active').dataset.tpl : 'modern'; const doc = { id: currentDoc, name: nameEl.value, title: titleEl.value, summary: summaryEl.value, skills: skillsEl.value, experiences: experiences, projects: projects, template: activeTpl }; persistSave(doc); alert('Saved'); }
+
+    function loadDoc(id){ const all = getSaved(); const doc = all.find(x=>x.id===id); if(!doc) return; currentDoc = doc.id; nameEl.value = doc.name||''; titleEl.value = doc.title||''; summaryEl.value = doc.summary||''; skillsEl.value = doc.skills||''; experiences = doc.experiences || []; projects = doc.projects || [];
+      tplButtons.forEach(b=>b.classList.remove('active'));
+      const chosen = document.querySelector('.tpl[data-tpl="'+(doc.template||'modern')+'"]'); if(chosen) chosen.classList.add('active');
+      previewContainer.classList.remove('tpl-modern','tpl-creative','tpl-minimal'); previewContainer.classList.add('tpl-'+(doc.template||'modern'));
+      renderExpInputs(); renderProjInputs(); saveModelToPreview(); }
+
+    // New doc
+    qs('#newBtn').addEventListener('click', ()=>{ currentDoc=null; nameEl.value=''; titleEl.value=''; summaryEl.value=''; skillsEl.value=''; experiences=[]; projects=[]; tplButtons.forEach(b=>b.classList.remove('active')); document.querySelector('.tpl[data-tpl="modern"]').classList.add('active'); previewContainer.classList.remove('tpl-modern','tpl-creative','tpl-minimal'); previewContainer.classList.add('tpl-modern'); renderExpInputs(); renderProjInputs(); saveModelToPreview(); });
+
+    // Download PDF
+    qs('#downloadBtn').addEventListener('click', ()=>{
+      const node = document.getElementById('preview').cloneNode(true);
+      node.style.width = '800px'; node.style.padding = '24px'; node.style.background = '#fff';
+      const opt = { margin:10, filename:(nameEl.value||'document') + '.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'pt',format:'a4',orientation:'portrait'} };
+      html2pdf().set(opt).from(node).save();
+    });
+
+    // init saved
+    qs('#saveBtn').addEventListener('click', saveCurrent);
+    loadSavedList(); renderExpInputs(); renderProjInputs(); saveModelToPreview();
+  </script>
+</body>
+</html>
